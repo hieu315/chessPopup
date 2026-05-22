@@ -70,10 +70,15 @@ const DIFFICULTY_PRESETS = {
   "4": { label: "Kho", skill: 15, depth: 8, elo: 2000 },
   "5": { label: "Rat kho", skill: 20, depth: 11, elo: 2500 }
 };
+const HINT_ENGINE_PRESET = {
+  depth: 14,
+  skill: 20
+};
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
 
 const boardEl = document.getElementById("board");
+const boardOverlayEl = document.getElementById("boardOverlay");
 const boardShellEl = document.getElementById("boardShell");
 const boardResizeHandleEl = document.getElementById("boardResizeHandle");
 const modeSelect = document.getElementById("modeSelect");
@@ -94,6 +99,8 @@ const engineLineEl = document.getElementById("engineLine");
 const gameFenInput = document.getElementById("gameFenInput");
 const engineMoveButton = document.getElementById("engineMoveButton");
 const undoMoveButton = document.getElementById("undoMoveButton");
+const analyzeTopMovesButton = document.getElementById("analyzeTopMovesButton");
+const topMovesListEl = document.getElementById("topMovesList");
 
 let chess = new Chess();
 let initialFen = null;
@@ -115,11 +122,16 @@ let engineReady = false;
 let engineSearching = false;
 let pendingSearch = false;
 let pendingForceSearch = false;
+let pendingSearchPurpose = "move";
 let activeSearchFen = "";
+let activeSearchPurpose = "move";
 let activeBoardResize = null;
 let activePieceDrag = null;
 let dragHoverSquare = "";
 let suppressBoardClick = false;
+let engineTopMoves = [];
+let engineTopMovesFen = "";
+let previewTopMove = null;
 
 boardEl.addEventListener("click", handleBoardClick);
 boardEl.addEventListener("pointerdown", handlePieceDragStart);
@@ -150,6 +162,13 @@ document.getElementById("flipBoardButton").addEventListener("click", async () =>
 engineMoveButton.addEventListener("click", async () => {
   await requestEngineMove(true);
 });
+
+analyzeTopMovesButton.addEventListener("click", async () => {
+  await requestTopMoves();
+});
+topMovesListEl.addEventListener("pointerover", handleTopMovePointerOver);
+topMovesListEl.addEventListener("pointerout", handleTopMovePointerOut);
+topMovesListEl.addEventListener("click", handleTopMoveClick);
 
 document.getElementById("loadFenButton").addEventListener("click", async () => {
   await loadFenPosition(gameFenInput.value);
@@ -217,7 +236,7 @@ playerColorSelect.addEventListener("change", async () => {
 difficultySelect.addEventListener("change", async () => {
   difficulty = DIFFICULTY_PRESETS[difficultySelect.value] ? difficultySelect.value : "2";
   statusMessage = `Da doi do kho sang muc ${DIFFICULTY_PRESETS[difficulty].label}.`;
-  configureEngine();
+  configureEngine("move");
   await persistState();
   renderGame();
 });
@@ -518,6 +537,7 @@ function clearSelection() {
 }
 
 async function playHumanMove(moveCandidate) {
+  previewTopMove = null;
   const move = chess.move({
     from: moveCandidate.from,
     to: moveCandidate.to,
@@ -543,6 +563,7 @@ async function playHumanMove(moveCandidate) {
 }
 
 async function startNewGame() {
+  previewTopMove = null;
   stopSearch();
   chess = new Chess();
   initialFen = null;
@@ -572,6 +593,7 @@ async function startNewGame() {
 }
 
 async function undoFullTurn() {
+  previewTopMove = null;
   if (mode === MODE_CUSTOM) {
     statusMessage = "Che do custom khong dung undo cap nuoc. Ban co the xoa o hoac nap FEN.";
     renderGame();
@@ -600,6 +622,7 @@ async function undoFullTurn() {
 }
 
 async function loadFenPosition(rawFen) {
+  previewTopMove = null;
   const fen = rawFen.trim();
 
   if (!fen) {
@@ -641,6 +664,7 @@ async function loadFenPosition(rawFen) {
 }
 
 async function switchMode(nextMode) {
+  previewTopMove = null;
   const targetMode = nextMode === MODE_CUSTOM ? MODE_CUSTOM : MODE_PLAY;
 
   if (targetMode === mode) {
@@ -689,6 +713,7 @@ async function switchMode(nextMode) {
 }
 
 async function requestEngineMove(forceCurrentSide) {
+  previewTopMove = null;
   if (mode !== MODE_PLAY) {
     statusMessage = "Che do custom dang bat, may se khong danh nuoc.";
     renderGame();
@@ -709,23 +734,77 @@ async function requestEngineMove(forceCurrentSide) {
   if (!engineReady) {
     pendingSearch = true;
     pendingForceSearch = forceCurrentSide;
+    pendingSearchPurpose = "move";
     statusMessage = "Dang tai Stockfish...";
     renderGame();
     return;
   }
 
-  configureEngine();
+  configureEngine("move");
   clearSelection();
   engineSearching = true;
   pendingSearch = false;
   pendingForceSearch = false;
+  pendingSearchPurpose = "move";
+  activeSearchPurpose = "move";
   activeSearchFen = chess.fen();
+  engineTopMoves = [];
+  engineTopMovesFen = activeSearchFen;
   statusMessage = "Stockfish dang nghi...";
   engineLineMessage = `Muc ${DIFFICULTY_PRESETS[difficulty].label} | depth ${DIFFICULTY_PRESETS[difficulty].depth}`;
   renderGame();
 
   engineSend(`position fen ${activeSearchFen}`);
   engineSend(`go depth ${DIFFICULTY_PRESETS[difficulty].depth}`);
+}
+
+async function requestTopMoves() {
+  previewTopMove = null;
+  if (mode !== MODE_PLAY) {
+    statusMessage = "Che do custom dang bat, khong phan tich Top 3.";
+    renderGame();
+    return;
+  }
+
+  if (engineSearching) {
+    statusMessage = "Stockfish dang nghi, hay doi lan phan tich hien tai xong.";
+    renderGame();
+    return;
+  }
+
+  if (chess.isGameOver()) {
+    statusMessage = "Van nay da ket thuc, khong con Top 3 de goi y.";
+    renderGame();
+    return;
+  }
+
+  ensureEngine();
+
+  if (!engineReady) {
+    pendingSearch = true;
+    pendingForceSearch = false;
+    pendingSearchPurpose = "hint";
+    statusMessage = "Dang tai Stockfish...";
+    renderGame();
+    return;
+  }
+
+  configureEngine("hint");
+  clearSelection();
+  engineSearching = true;
+  pendingSearch = false;
+  pendingForceSearch = false;
+  pendingSearchPurpose = "hint";
+  activeSearchPurpose = "hint";
+  activeSearchFen = chess.fen();
+  engineTopMoves = [];
+  engineTopMovesFen = activeSearchFen;
+  statusMessage = "Stockfish dang phan tich Top 3...";
+  engineLineMessage = `Top 3 | depth ${HINT_ENGINE_PRESET.depth} | engine manh nhat`;
+  renderGame();
+
+  engineSend(`position fen ${activeSearchFen}`);
+  engineSend(`go depth ${HINT_ENGINE_PRESET.depth}`);
 }
 
 function ensureEngine() {
@@ -757,7 +836,7 @@ function handleEngineMessage(event) {
 
   if (line === "uciok") {
     engineReady = true;
-    configureEngine();
+    configureEngine("move");
     engineSend("isready");
     renderGame();
     return;
@@ -769,8 +848,10 @@ function handleEngineMessage(event) {
 
     if (pendingSearch) {
       const forced = pendingForceSearch;
+      const purpose = pendingSearchPurpose;
       pendingForceSearch = false;
-      void requestEngineMove(forced);
+      pendingSearchPurpose = "move";
+      void (purpose === "hint" ? requestTopMoves() : requestEngineMove(forced));
     }
 
     return;
@@ -790,6 +871,17 @@ function handleBestMove(line) {
   engineSearching = false;
   const match = line.match(/^bestmove\s([a-h][1-8])([a-h][1-8])([qrbn])?/);
 
+  if (activeSearchPurpose === "hint") {
+    previewTopMove = null;
+    activeSearchFen = "";
+    activeSearchPurpose = "move";
+    statusMessage = engineTopMoves.length
+      ? "Da cap nhat Top 3 nuoc goi y."
+      : "Khong lay duoc Top 3 cho vi tri hien tai.";
+    renderGame();
+    return;
+  }
+
   if (mode !== MODE_PLAY || !match || !activeSearchFen || chess.fen() !== activeSearchFen) {
     activeSearchFen = "";
     renderGame();
@@ -802,7 +894,9 @@ function handleBestMove(line) {
     promotion: match[3] || "q"
   });
 
+  previewTopMove = null;
   activeSearchFen = "";
+  activeSearchPurpose = "move";
 
   if (!move) {
     statusMessage = "Da bo qua bestmove cu vi trang thai van da thay doi.";
@@ -822,8 +916,11 @@ function handleEngineInfo(line) {
   }
 
   const depthMatch = line.match(/\bdepth\s(\d+)/);
+  const multiPvMatch = line.match(/\bmultipv\s(\d+)/);
   const scoreMatch = line.match(/\bscore\s(cp|mate)\s(-?\d+)/);
   const pvMatch = line.match(/\bpv\s(.+)$/);
+  const multiPv = Number(multiPvMatch?.[1] || 1);
+  const depth = depthMatch ? Number(depthMatch[1]) : 0;
 
   if (!depthMatch && !scoreMatch && !pvMatch) {
     return;
@@ -836,18 +933,30 @@ function handleEngineInfo(line) {
   }
 
   if (depthMatch) {
-    parts.push(`depth ${depthMatch[1]}`);
+    parts.push(`depth ${depth}`);
   }
 
   if (pvMatch) {
     parts.push(`pv ${pvMatch[1].split(/\s+/).slice(0, 5).join(" ")}`);
   }
 
-  engineLineMessage = parts.join(" | ");
+  if (multiPv === 1) {
+    engineLineMessage = parts.join(" | ");
+  }
+
+  if (activeSearchFen && scoreMatch && pvMatch) {
+    upsertTopMove({
+      rank: multiPv,
+      depth,
+      score: formatScore(scoreMatch[1], Number(scoreMatch[2])),
+      pv: pvMatch[1]
+    });
+  }
+
   renderGame();
 }
 
-function configureEngine() {
+function configureEngine(purpose = "move") {
   if (!engineWorker || !engineReady) {
     return;
   }
@@ -855,6 +964,14 @@ function configureEngine() {
   const preset = DIFFICULTY_PRESETS[difficulty];
   engineSend("setoption name Threads value 1");
   engineSend("setoption name Hash value 16");
+  engineSend("setoption name MultiPV value 3");
+
+  if (purpose === "hint") {
+    engineSend("setoption name UCI_LimitStrength value false");
+    engineSend(`setoption name Skill Level value ${HINT_ENGINE_PRESET.skill}`);
+    return;
+  }
+
   engineSend(`setoption name Skill Level value ${preset.skill}`);
   engineSend("setoption name UCI_LimitStrength value true");
   engineSend(`setoption name UCI_Elo value ${preset.elo}`);
@@ -873,6 +990,7 @@ function resetEngineForFreshGame() {
 function stopSearch() {
   if (!engineWorker) {
     activeSearchFen = "";
+    activeSearchPurpose = "move";
     engineSearching = false;
     pendingSearch = false;
     pendingForceSearch = false;
@@ -882,7 +1000,9 @@ function stopSearch() {
   engineSearching = false;
   pendingSearch = false;
   pendingForceSearch = false;
+  pendingSearchPurpose = "move";
   activeSearchFen = "";
+  activeSearchPurpose = "move";
   engineSend("stop");
 }
 
@@ -956,6 +1076,7 @@ async function restoreState() {
 }
 
 function rebuildGameFromState() {
+  previewTopMove = null;
   chess = initialFen ? new Chess(initialFen) : new Chess();
 
   for (const uci of moveStack) {
@@ -1000,6 +1121,8 @@ function renderGame() {
   syncFormControls();
   renderCustomPalette();
   renderBoard();
+  renderTopMoveOverlay();
+  renderTopMoves();
   customPanelEl.classList.toggle("hidden", mode !== MODE_CUSTOM);
   gameFenInput.value = chess.fen();
   gameStatusEl.textContent = statusMessage || defaultStatusText();
@@ -1009,6 +1132,7 @@ function renderGame() {
   engineLineEl.textContent = engineLineMessage || "Stockfish se hien score va dong pv sau khi bat dau tinh.";
   engineMoveButton.disabled = mode === MODE_CUSTOM || engineSearching || chess.isGameOver();
   undoMoveButton.disabled = mode === MODE_CUSTOM;
+  analyzeTopMovesButton.disabled = mode === MODE_CUSTOM || engineSearching || chess.isGameOver();
 }
 
 function syncFormControls() {
@@ -1174,6 +1298,254 @@ function cleanupPieceDrag() {
   activePieceDrag = null;
   dragHoverSquare = "";
   renderBoard();
+  renderTopMoveOverlay();
+}
+
+function upsertTopMove(entry) {
+  const sanLine = convertPvToSan(activeSearchFen, entry.pv);
+  const nextMove = sanLine[0] || entry.pv.split(/\s+/)[0] || "-";
+  const line = sanLine.slice(0, 5).join(" ");
+  const firstUciMove = entry.pv.split(/\s+/).find(Boolean) || "";
+  const parsedFirstMove = parseUciMove(firstUciMove);
+  const existingMove = engineTopMoves.find((move) => move.rank === entry.rank);
+
+  if (existingMove && existingMove.depth > entry.depth) {
+    return;
+  }
+
+  engineTopMoves = [
+    ...engineTopMoves.filter((move) => move.rank !== entry.rank),
+    {
+      rank: entry.rank,
+      depth: entry.depth,
+      score: entry.score,
+      move: nextMove,
+      line: line || entry.pv,
+      from: parsedFirstMove?.from || "",
+      to: parsedFirstMove?.to || ""
+    }
+  ].sort((left, right) => left.rank - right.rank);
+}
+
+function handleTopMovePointerOver(event) {
+  const itemEl = event.target.closest(".top-move");
+
+  if (!itemEl || !topMovesListEl.contains(itemEl)) {
+    return;
+  }
+
+  setTopMovePreview(itemEl.dataset.from, itemEl.dataset.to, itemEl.dataset.rank);
+}
+
+function handleTopMovePointerOut(event) {
+  const itemEl = event.target.closest(".top-move");
+
+  if (!itemEl) {
+    return;
+  }
+
+  const relatedTarget = event.relatedTarget;
+
+  if (relatedTarget instanceof Node && itemEl.contains(relatedTarget)) {
+    return;
+  }
+
+  clearTopMovePreview();
+}
+
+function handleTopMoveClick(event) {
+  const itemEl = event.target.closest(".top-move");
+
+  if (!itemEl || !topMovesListEl.contains(itemEl)) {
+    return;
+  }
+
+  const nextPreview = {
+    from: itemEl.dataset.from || "",
+    to: itemEl.dataset.to || "",
+    rank: itemEl.dataset.rank || ""
+  };
+
+  if (
+    previewTopMove?.from === nextPreview.from &&
+    previewTopMove?.to === nextPreview.to &&
+    previewTopMove?.rank === nextPreview.rank
+  ) {
+    clearTopMovePreview();
+    return;
+  }
+
+  setTopMovePreview(nextPreview.from, nextPreview.to, nextPreview.rank);
+}
+
+function setTopMovePreview(from, to, rank) {
+  if (!from || !to) {
+    clearTopMovePreview();
+    return;
+  }
+
+  previewTopMove = { from, to, rank: String(rank || "") };
+  renderBoard();
+  renderTopMoveOverlay();
+  syncTopMovePreviewState();
+}
+
+function clearTopMovePreview() {
+  if (!previewTopMove) {
+    return;
+  }
+
+  previewTopMove = null;
+  renderBoard();
+  renderTopMoveOverlay();
+  syncTopMovePreviewState();
+}
+
+function renderTopMoves() {
+  if (mode !== MODE_PLAY) {
+    topMovesListEl.textContent = "Top 3 chi hien trong che do choi voi may.";
+    return;
+  }
+
+  if (!engineTopMoves.length || engineTopMovesFen !== chess.fen()) {
+    topMovesListEl.textContent = engineSearching && activeSearchPurpose === "hint"
+      ? "Stockfish dang tinh Top 3..."
+      : 'Bam "Top 3 goi y" de xem cac nuoc manh nhat cho vi tri hien tai.';
+    return;
+  }
+
+  topMovesListEl.innerHTML = engineTopMoves.map((move) => `
+    <button
+      class="top-move"
+      type="button"
+      data-rank="${move.rank}"
+      data-from="${escapeHtml(move.from)}"
+      data-to="${escapeHtml(move.to)}"
+    >
+      <div class="top-move-head">
+        <span><span class="top-move-rank">#${move.rank}</span> ${escapeHtml(move.move)}</span>
+        <span class="top-move-score">${escapeHtml(move.score)}</span>
+      </div>
+      <div class="top-move-line">depth ${move.depth} | ${escapeHtml(move.line)}</div>
+    </button>
+  `).join("");
+  syncTopMovePreviewState();
+}
+
+function syncTopMovePreviewState() {
+  const moveButtons = topMovesListEl.querySelectorAll(".top-move");
+
+  moveButtons.forEach((buttonEl) => {
+    const isActive = previewTopMove?.rank === buttonEl.dataset.rank;
+    buttonEl.classList.toggle("active-preview", Boolean(isActive));
+  });
+}
+
+function renderTopMoveOverlay() {
+  const movesToRender = engineTopMovesFen === chess.fen()
+    ? engineTopMoves.filter((move) => move.from && move.to)
+    : [];
+
+  if (!movesToRender.length) {
+    boardOverlayEl.innerHTML = "";
+    return;
+  }
+
+  const boardRect = boardEl.getBoundingClientRect();
+  const viewWidth = boardRect.width;
+  const viewHeight = boardRect.height;
+  const overlayMarkup = movesToRender.map((move) => {
+    const fromEl = boardEl.querySelector(`[data-square="${move.from}"]`);
+    const toEl = boardEl.querySelector(`[data-square="${move.to}"]`);
+
+    if (!fromEl || !toEl) {
+      return "";
+    }
+
+    const fromRect = fromEl.getBoundingClientRect();
+    const toRect = toEl.getBoundingClientRect();
+    const startX = fromRect.left - boardRect.left + fromRect.width / 2;
+    const startY = fromRect.top - boardRect.top + fromRect.height / 2;
+    const endX = toRect.left - boardRect.left + toRect.width / 2;
+    const endY = toRect.top - boardRect.top + toRect.height / 2;
+    const vectorX = endX - startX;
+    const vectorY = endY - startY;
+    const distance = Math.hypot(vectorX, vectorY) || 1;
+    const unitX = vectorX / distance;
+    const unitY = vectorY / distance;
+    const squareSize = Math.min(fromRect.width, fromRect.height);
+    const startOffset = squareSize * 0.16;
+    const endOffset = squareSize * 0.24;
+    const lineStartX = startX + unitX * startOffset;
+    const lineStartY = startY + unitY * startOffset;
+    const lineEndX = endX - unitX * endOffset;
+    const lineEndY = endY - unitY * endOffset;
+    const headLength = Math.max(12, squareSize * 0.24);
+    const headWidth = Math.max(9, squareSize * 0.18);
+    const baseX = lineEndX - unitX * headLength;
+    const baseY = lineEndY - unitY * headLength;
+    const normalX = -unitY;
+    const normalY = unitX;
+    const headLeftX = baseX + normalX * headWidth;
+    const headLeftY = baseY + normalY * headWidth;
+    const headRightX = baseX - normalX * headWidth;
+    const headRightY = baseY - normalY * headWidth;
+    const isActive = previewTopMove?.rank === String(move.rank);
+    const stateClass = previewTopMove ? (isActive ? " is-active" : " is-muted") : "";
+    const rankClass = ` rank-${move.rank}`;
+
+    return `
+      <g class="top-move-overlay${rankClass}${stateClass}">
+        <path class="top-move-arrow-glow${rankClass}" d="M ${lineStartX} ${lineStartY} L ${lineEndX} ${lineEndY}" />
+        <path class="top-move-arrow-line${rankClass}" d="M ${lineStartX} ${lineStartY} L ${lineEndX} ${lineEndY}" />
+        <circle class="top-move-arrow-from-dot${rankClass}" cx="${startX}" cy="${startY}" r="${Math.max(6, squareSize * 0.12)}" />
+        <circle class="top-move-arrow-to-ring${rankClass}" cx="${endX}" cy="${endY}" r="${Math.max(12, squareSize * 0.22)}" />
+        <polygon class="top-move-arrow-head${rankClass}" points="${lineEndX},${lineEndY} ${headLeftX},${headLeftY} ${headRightX},${headRightY}" />
+      </g>
+    `;
+  }).join("");
+
+  boardOverlayEl.innerHTML = `
+    <svg viewBox="0 0 ${viewWidth} ${viewHeight}" preserveAspectRatio="none" aria-hidden="true">
+      ${overlayMarkup}
+    </svg>
+  `;
+}
+
+function convertPvToSan(fen, pv) {
+  if (!fen || !pv) {
+    return [];
+  }
+
+  const analysisChess = new Chess(fen);
+  const sanMoves = [];
+
+  for (const rawMove of pv.split(/\s+/).filter(Boolean)) {
+    const move = parseUciMove(rawMove);
+
+    if (!move) {
+      break;
+    }
+
+    const playedMove = analysisChess.move(move);
+
+    if (!playedMove) {
+      break;
+    }
+
+    sanMoves.push(playedMove.san);
+  }
+
+  return sanMoves;
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
 
 function renderCustomPalette() {
@@ -1212,6 +1584,8 @@ function renderBoard() {
       const isCapture = isLegalTarget && Boolean(piece);
       const isDragSource = activePieceDrag?.started && activePieceDrag.sourceSquare === square;
       const isDragHover = dragHoverSquare === square;
+      const isTopMoveFrom = previewTopMove?.from === square;
+      const isTopMoveTo = previewTopMove?.to === square;
       const coord = buildCoordLabel(rankIndex, fileIndex, square);
       const classes = [
         "square",
@@ -1220,6 +1594,8 @@ function renderBoard() {
         isLegalTarget ? "legal" : "",
         isDragSource ? "drag-source" : "",
         isDragHover ? "drag-hover" : "",
+        isTopMoveFrom ? "top-move-from" : "",
+        isTopMoveTo ? "top-move-to" : "",
         isCapture ? "capture" : "",
         checkedSquare === square ? "checked" : ""
       ].filter(Boolean).join(" ");

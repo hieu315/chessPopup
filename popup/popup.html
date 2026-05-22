@@ -59,8 +59,33 @@
           </label>
         </div>
 
+        <div class="board-toolbar" aria-label="Tac vu ban co">
+          <button
+            id="newGameButton"
+            class="secondary board-quick-action"
+            type="button"
+            aria-label="Van moi"
+            title="Van moi"
+          >&#8635;</button>
+          <button
+            id="undoMoveButton"
+            class="secondary board-quick-action"
+            type="button"
+            aria-label="Undo 1 cap nuoc"
+            title="Undo 1 cap nuoc"
+          >&#8630;</button>
+          <button
+            id="analyzeTopMovesButton"
+            class="secondary board-quick-action"
+            type="button"
+            aria-label="Phan tich Top 3 nuoc"
+            title="Top 3 nuoc goi y"
+          >&#9822;</button>
+        </div>
+
         <div id="boardShell" class="board-shell">
           <div id="board" class="board" aria-label="Ban co vua"></div>
+          <div id="boardOverlay" class="board-overlay" aria-hidden="true"></div>
           <button
             id="boardResizeHandle"
             class="board-resize-handle"
@@ -123,9 +148,17 @@
           </span>
         </div>
 
+        <div class="analysis-card">
+          <div class="analysis-head">
+            <span class="label">Top 3 nuoc</span>
+            <span class="analysis-hint">Hover hoac bam de highlight</span>
+          </div>
+          <div id="topMovesList" class="top-moves-list">
+            Bam nut &#9822; tren ban co de xem cac nuoc manh nhat cho vi tri hien tai.
+          </div>
+        </div>
+
         <div class="controls two-cols">
-          <button id="newGameButton">Van moi</button>
-          <button id="undoMoveButton" class="secondary">Undo 1 cap nuoc</button>
           <button id="flipBoardButton" class="secondary">Lat ban co</button>
           <button id="engineMoveButton" class="secondary">May danh nuoc nay</button>
         </div>
