@@ -5,6 +5,7 @@
 :root {
   color-scheme: light;
   --popup-width: 520px;
+  --popup-opacity: 1;
   --board-size: 720px;
   --bg-top: #f9f7f0;
   --bg-bottom: #efe5d2;
@@ -29,6 +30,7 @@ body {
 
 body {
   margin: 0;
+  opacity: var(--popup-opacity);
   color: var(--ink);
   font-family: "Trebuchet MS", "Aptos", sans-serif;
   background:
@@ -55,6 +57,11 @@ body {
 
 .field-range {
   gap: 6px;
+}
+
+.toolbar-grid {
+  display: grid;
+  gap: 8px;
 }
 
 .size-stepper {
@@ -120,8 +127,7 @@ h1 {
   box-shadow: 0 16px 36px rgba(120, 94, 49, 0.12);
 }
 
-.controls,
-.meta {
+.controls {
   display: grid;
   gap: 10px;
 }
@@ -132,6 +138,10 @@ h1 {
 
 .two-cols {
   grid-template-columns: 1fr 1fr;
+}
+
+.single-col {
+  grid-template-columns: 1fr;
 }
 
 .field,
@@ -652,6 +662,12 @@ button.secondary {
   border: 1px solid rgba(120, 94, 49, 0.14);
 }
 
+.meta-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, 1fr);
+}
+
 .analysis-head {
   display: flex;
   align-items: center;
@@ -760,7 +776,8 @@ button.top-move.active-preview {
   }
 
   .three-cols,
-  .two-cols {
+  .two-cols,
+  .meta-grid {
     grid-template-columns: 1fr;
   }
 

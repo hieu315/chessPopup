@@ -19,14 +19,25 @@
       </header>
 
       <section class="size-toolbar" aria-label="Dieu chinh kich thuoc popup">
-        <label class="field field-range">
-          <span>Kich thuoc popup</span>
-          <div class="size-stepper">
-            <button id="sizeDecreaseButton" class="stepper-button secondary" type="button" aria-label="Thu nho popup">-</button>
-            <span id="sizeValue" class="range-value">--</span>
-            <button id="sizeIncreaseButton" class="stepper-button secondary" type="button" aria-label="Mo rong popup">+</button>
-          </div>
-        </label>
+        <div class="toolbar-grid">
+          <label class="field field-range">
+            <span>Kich thuoc popup</span>
+            <div class="size-stepper">
+              <button id="sizeDecreaseButton" class="stepper-button secondary" type="button" aria-label="Thu nho popup">-</button>
+              <span id="sizeValue" class="range-value">--</span>
+              <button id="sizeIncreaseButton" class="stepper-button secondary" type="button" aria-label="Mo rong popup">+</button>
+            </div>
+          </label>
+
+          <label class="field field-range">
+            <span>Do mo</span>
+            <div class="size-stepper">
+              <button id="opacityDecreaseButton" class="stepper-button secondary" type="button" aria-label="Giam do mo popup">-</button>
+              <span id="opacityValue" class="range-value">--</span>
+              <button id="opacityIncreaseButton" class="stepper-button secondary" type="button" aria-label="Tang do mo popup">+</button>
+            </div>
+          </label>
+        </div>
       </section>
 
       <section class="panel">
@@ -122,25 +133,6 @@
           </p>
         </section>
 
-        <div class="meta two-cols">
-          <div class="stat">
-            <span class="label">Trang thai</span>
-            <span id="gameStatus">San sang.</span>
-          </div>
-          <div class="stat">
-            <span class="label">Luot di</span>
-            <span id="gameTurn">Trang</span>
-          </div>
-          <div class="stat">
-            <span class="label">Ket qua</span>
-            <span id="gameResult">Dang choi</span>
-          </div>
-          <div class="stat">
-            <span class="label">Engine</span>
-            <span id="engineStatus">Dang tai...</span>
-          </div>
-        </div>
-
         <div class="stat">
           <span class="label">Danh gia</span>
           <span id="engineLine" class="engine-line">
@@ -158,9 +150,8 @@
           </div>
         </div>
 
-        <div class="controls two-cols">
+        <div class="controls single-col">
           <button id="flipBoardButton" class="secondary">Lat ban co</button>
-          <button id="engineMoveButton" class="secondary">May danh nuoc nay</button>
         </div>
 
         <label class="field">
