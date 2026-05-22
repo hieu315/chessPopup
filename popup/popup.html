@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Popup Gambit</title>
+    <script src="popup-config.js"></script>
+    <script src="bootstrap.js"></script>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="popup">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Chrome Extension</p>
+          <h1>Popup Gambit</h1>
+        </div>
+        <span class="chip">Stockfish local</span>
+      </header>
+
+      <section class="size-toolbar" aria-label="Dieu chinh kich thuoc popup">
+        <label class="field field-range">
+          <span>Kich thuoc popup</span>
+          <div class="size-stepper">
+            <button id="sizeDecreaseButton" class="stepper-button secondary" type="button" aria-label="Thu nho popup">-</button>
+            <span id="sizeValue" class="range-value">--</span>
+            <button id="sizeIncreaseButton" class="stepper-button secondary" type="button" aria-label="Mo rong popup">+</button>
+          </div>
+        </label>
+      </section>
+
+      <section class="panel">
+        <div class="controls three-cols">
+          <label class="field">
+            <span>Che do</span>
+            <select id="modeSelect">
+              <option value="play">Choi voi may</option>
+              <option value="custom">Custom ban co</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Ban cam</span>
+            <select id="playerColorSelect">
+              <option value="white">Trang</option>
+              <option value="black">Den</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Do kho</span>
+            <select id="difficultySelect">
+              <option value="1">De</option>
+              <option value="2">Thuong</option>
+              <option value="3">Kha</option>
+              <option value="4">Kho</option>
+              <option value="5">Rat kho</option>
+            </select>
+          </label>
+        </div>
+
+        <div id="boardShell" class="board-shell">
+          <div id="board" class="board" aria-label="Ban co vua"></div>
+          <button
+            id="boardResizeHandle"
+            class="board-resize-handle"
+            type="button"
+            aria-label="Keo de doi kich thuoc ban co"
+            title="Giu chuot va keo de doi kich thuoc ban co"
+          ></button>
+        </div>
+
+        <section id="customPanel" class="custom-panel hidden">
+          <div class="controls two-cols">
+            <label class="field">
+              <span>Luot trong FEN</span>
+              <select id="customTurnSelect">
+                <option value="w">Trang</option>
+                <option value="b">Den</option>
+              </select>
+            </label>
+            <div class="stat">
+              <span class="label">Quan dang dat</span>
+              <span id="customPieceLabel">Tot trang</span>
+            </div>
+          </div>
+
+          <div id="customPalette" class="palette"></div>
+
+          <div class="controls two-cols">
+            <button id="clearBoardButton" class="secondary">Xoa ban co</button>
+            <button id="setupStartPositionButton" class="secondary">Setup chuan</button>
+          </div>
+
+          <p class="note">
+            O che do custom, bam chon quan roi bam len o bat ky de dat. Chon "Xoa o" de xoa quan tren tung o. Stockfish se tam tat.
+          </p>
+        </section>
+
+        <div class="meta two-cols">
+          <div class="stat">
+            <span class="label">Trang thai</span>
+            <span id="gameStatus">San sang.</span>
+          </div>
+          <div class="stat">
+            <span class="label">Luot di</span>
+            <span id="gameTurn">Trang</span>
+          </div>
+          <div class="stat">
+            <span class="label">Ket qua</span>
+            <span id="gameResult">Dang choi</span>
+          </div>
+          <div class="stat">
+            <span class="label">Engine</span>
+            <span id="engineStatus">Dang tai...</span>
+          </div>
+        </div>
+
+        <div class="stat">
+          <span class="label">Danh gia</span>
+          <span id="engineLine" class="engine-line">
+            Stockfish se hien score va dong pv sau khi bat dau tinh.
+          </span>
+        </div>
+
+        <div class="controls two-cols">
+          <button id="newGameButton">Van moi</button>
+          <button id="undoMoveButton" class="secondary">Undo 1 cap nuoc</button>
+          <button id="flipBoardButton" class="secondary">Lat ban co</button>
+          <button id="engineMoveButton" class="secondary">May danh nuoc nay</button>
+        </div>
+
+        <label class="field">
+          <span>FEN</span>
+          <textarea id="gameFenInput" spellcheck="false"></textarea>
+        </label>
+
+        <div class="controls two-cols">
+          <button id="loadFenButton">Nap FEN</button>
+          <button id="copyFenButton" class="secondary">Copy FEN</button>
+        </div>
+
+        <p class="note">
+          Bam o nguon roi bam o dich de di chuyen. Tot phong se tu dong phong hau. Popup tu luu lai van dang choi.
+        </p>
+      </section>
+    </main>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>
