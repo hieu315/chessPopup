@@ -67,27 +67,27 @@ const PIECE_ASSETS = {
 };
 
 const CUSTOM_PIECES = [
-  { value: "erase", label: "Xoa o", symbol: "x" },
-  { value: "wk", label: "Vua trang", asset: PIECE_ASSETS.wk },
-  { value: "wq", label: "Hau trang", asset: PIECE_ASSETS.wq },
-  { value: "wr", label: "Xe trang", asset: PIECE_ASSETS.wr },
-  { value: "wb", label: "Tuong trang", asset: PIECE_ASSETS.wb },
-  { value: "wn", label: "Ma trang", asset: PIECE_ASSETS.wn },
-  { value: "wp", label: "Tot trang", asset: PIECE_ASSETS.wp },
-  { value: "bk", label: "Vua den", asset: PIECE_ASSETS.bk },
-  { value: "bq", label: "Hau den", asset: PIECE_ASSETS.bq },
-  { value: "br", label: "Xe den", asset: PIECE_ASSETS.br },
-  { value: "bb", label: "Tuong den", asset: PIECE_ASSETS.bb },
-  { value: "bn", label: "Ma den", asset: PIECE_ASSETS.bn },
-  { value: "bp", label: "Tot den", asset: PIECE_ASSETS.bp }
+  { value: "erase", label: "Erase Square", symbol: "x" },
+  { value: "wk", label: "White King", asset: PIECE_ASSETS.wk },
+  { value: "wq", label: "White Queen", asset: PIECE_ASSETS.wq },
+  { value: "wr", label: "White Rook", asset: PIECE_ASSETS.wr },
+  { value: "wb", label: "White Bishop", asset: PIECE_ASSETS.wb },
+  { value: "wn", label: "White Knight", asset: PIECE_ASSETS.wn },
+  { value: "wp", label: "White Pawn", asset: PIECE_ASSETS.wp },
+  { value: "bk", label: "Black King", asset: PIECE_ASSETS.bk },
+  { value: "bq", label: "Black Queen", asset: PIECE_ASSETS.bq },
+  { value: "br", label: "Black Rook", asset: PIECE_ASSETS.br },
+  { value: "bb", label: "Black Bishop", asset: PIECE_ASSETS.bb },
+  { value: "bn", label: "Black Knight", asset: PIECE_ASSETS.bn },
+  { value: "bp", label: "Black Pawn", asset: PIECE_ASSETS.bp }
 ];
 
 const DIFFICULTY_PRESETS = {
-  "1": { label: "De", skill: 0, depth: 1, elo: 800 },
-  "2": { label: "Thuong", skill: 5, depth: 3, elo: 1200 },
-  "3": { label: "Kha", skill: 10, depth: 5, elo: 1600 },
-  "4": { label: "Kho", skill: 15, depth: 8, elo: 2000 },
-  "5": { label: "Rat kho", skill: 20, depth: 11, elo: 2500 }
+  "1": { label: "Easy", skill: 0, depth: 1, elo: 800 },
+  "2": { label: "Normal", skill: 5, depth: 3, elo: 1200 },
+  "3": { label: "Medium", skill: 10, depth: 5, elo: 1600 },
+  "4": { label: "Hard", skill: 15, depth: 8, elo: 2000 },
+  "5": { label: "Very Hard", skill: 20, depth: 11, elo: 2500 }
 };
 const HINT_ENGINE_PRESET = {
   depth: 14,
@@ -152,8 +152,8 @@ let customTurn = "w";
 let customSelectedPiece = "wp";
 let selectedSquare = null;
 let legalMoves = [];
-let statusMessage = "San sang.";
-let engineLineMessage = "Stockfish se hien score va dong pv sau khi bat dau tinh.";
+let statusMessage = "Ready.";
+let engineLineMessage = "Stockfish will show the score and PV after it starts calculating.";
 let engineWorker = null;
 let engineReady = false;
 let engineSearching = false;
@@ -207,7 +207,7 @@ opacityIncreaseButton.addEventListener("click", async () => {
 
 flipBoardButton.addEventListener("click", async () => {
   boardView = boardView === "white" ? "black" : "white";
-  statusMessage = "Da lat huong nhin ban co.";
+  statusMessage = "Board orientation flipped.";
   await persistState();
   renderGame();
 });
@@ -226,10 +226,10 @@ loadFenButton.addEventListener("click", async () => {
 copyFenButton.addEventListener("click", async () => {
   try {
     await navigator.clipboard.writeText(chess.fen());
-    statusMessage = "Da copy FEN hien tai.";
+    statusMessage = "Current FEN copied.";
     renderGame();
   } catch (error) {
-    statusMessage = error?.message || "Khong copy duoc FEN.";
+    statusMessage = error?.message || "Could not copy FEN.";
     renderGame();
   }
 });
@@ -243,8 +243,8 @@ clearBoardButton.addEventListener("click", async () => {
   chess.clear();
   syncCustomBoardState();
   clearSelection();
-  engineLineMessage = "Che do custom: Stockfish dang tat.";
-  statusMessage = "Da xoa toan bo ban co.";
+  engineLineMessage = "Custom mode: Stockfish is off.";
+  statusMessage = "Board cleared.";
   await persistState();
   renderGame();
 });
@@ -260,8 +260,8 @@ setupStartPositionButton.addEventListener("click", async () => {
   initialFen = chess.fen();
   moveStack = [];
   clearSelection();
-  engineLineMessage = "Che do custom: da dua ban co ve setup chuan.";
-  statusMessage = "Da dua ban co ve vi tri xuat phat.";
+  engineLineMessage = "Custom mode: board reset to the standard setup.";
+  statusMessage = "Board reset to the starting position.";
   await persistState();
   renderGame();
 });
@@ -273,7 +273,7 @@ modeSelect.addEventListener("change", async () => {
 playerColorSelect.addEventListener("change", async () => {
   playerColor = playerColorSelect.value === "black" ? "black" : "white";
   boardView = playerColor;
-  statusMessage = `Ban chuyen sang cam ${playerColor === "white" ? "trang" : "den"}.`;
+  statusMessage = `You are now playing ${playerColor}.`;
   await persistState();
   renderGame();
 
@@ -284,7 +284,7 @@ playerColorSelect.addEventListener("change", async () => {
 
 difficultySelect.addEventListener("change", async () => {
   difficulty = DIFFICULTY_PRESETS[difficultySelect.value] ? difficultySelect.value : "2";
-  statusMessage = `Da doi do kho sang muc ${DIFFICULTY_PRESETS[difficulty].label}.`;
+  statusMessage = `Difficulty changed to ${DIFFICULTY_PRESETS[difficulty].label}.`;
   configureEngine("move");
   await persistState();
   renderGame();
@@ -305,7 +305,7 @@ customTurnSelect.addEventListener("change", async () => {
 
   customTurn = customTurnSelect.value === "b" ? "b" : "w";
   syncCustomBoardState();
-  statusMessage = `Da doi luot trong FEN sang ${customTurn === "w" ? "trang" : "den"}.`;
+  statusMessage = `FEN turn changed to ${customTurn === "w" ? "white" : "black"}.`;
   await persistState();
   renderGame();
 });
@@ -340,13 +340,13 @@ function handleBoardClick(event) {
   }
 
   if (engineSearching) {
-    statusMessage = "Hay cho Stockfish danh xong nuoc hien tai.";
+    statusMessage = "Please wait for Stockfish to finish the current move.";
     renderGame();
     return;
   }
 
   if (!isPlayerTurn()) {
-    statusMessage = "Chua den luot ban.";
+    statusMessage = "It is not your turn yet.";
     renderGame();
     return;
   }
@@ -357,7 +357,7 @@ function handleBoardClick(event) {
   if (selectedSquare) {
     if (square === selectedSquare) {
       clearSelection();
-      statusMessage = "Da bo chon o hien tai.";
+      statusMessage = "Selection cleared.";
       renderGame();
       return;
     }
@@ -371,25 +371,25 @@ function handleBoardClick(event) {
 
     if (isOwnPiece) {
       selectSquare(square);
-      statusMessage = `Dang chon quan o ${square}.`;
+      statusMessage = `Selected piece on ${square}.`;
       renderGame();
       return;
     }
 
     clearSelection();
-    statusMessage = "Nuoc di khong hop le.";
+    statusMessage = "Illegal move.";
     renderGame();
     return;
   }
 
   if (!isOwnPiece) {
-    statusMessage = "Hay chon mot quan co cua ban.";
+    statusMessage = "Please select one of your pieces.";
     renderGame();
     return;
   }
 
   selectSquare(square);
-  statusMessage = `Dang chon quan o ${square}.`;
+  statusMessage = `Selected piece on ${square}.`;
   renderGame();
 }
 
@@ -486,13 +486,13 @@ function handlePieceDragEnd(event) {
 
   if (!dropSquare || dropSquare === sourceSquare) {
     clearSelection();
-    statusMessage = "Da huy keo quan.";
+    statusMessage = "Drag canceled.";
     renderGame();
   } else if (chosenMove) {
     void playHumanMove(chosenMove);
   } else {
     clearSelection();
-    statusMessage = "Nuoc di khong hop le.";
+    statusMessage = "Illegal move.";
     renderGame();
   }
 
@@ -516,7 +516,7 @@ function handlePieceDragCancel(event) {
 
   cleanupPieceDrag();
   clearSelection();
-  statusMessage = "Da huy keo quan.";
+  statusMessage = "Drag canceled.";
   renderGame();
   window.setTimeout(() => {
     suppressBoardClick = false;
@@ -531,7 +531,7 @@ function handlePaletteClick(event) {
   }
 
   customSelectedPiece = button.dataset.piece;
-  statusMessage = `Da chon ${getCustomPieceLabel(customSelectedPiece).toLowerCase()}.`;
+  statusMessage = `Selected ${getCustomPieceLabel(customSelectedPiece).toLowerCase()}.`;
   renderGame();
 }
 
@@ -545,8 +545,8 @@ async function handleCustomBoardClick(square) {
   if (pieceCode === "erase" || currentPieceCode === pieceCode) {
     chess.remove(square);
     syncCustomBoardState();
-    engineLineMessage = "Che do custom: Stockfish dang tat.";
-    statusMessage = `Da xoa o ${square}.`;
+    engineLineMessage = "Custom mode: Stockfish is off.";
+    statusMessage = `Cleared square ${square}.`;
     await persistState();
     renderGame();
     return;
@@ -555,7 +555,7 @@ async function handleCustomBoardClick(square) {
   const piece = parsePieceCode(pieceCode);
 
   if (!piece) {
-    statusMessage = "Khong xac dinh duoc quan can dat.";
+    statusMessage = "Could not determine which piece to place.";
     renderGame();
     return;
   }
@@ -571,14 +571,14 @@ async function handleCustomBoardClick(square) {
   const success = chess.put(piece, square);
 
   if (!success) {
-    statusMessage = "Khong dat duoc quan nay. Moi mau chi duoc 1 vua.";
+    statusMessage = "Could not place that piece. Each side can only have one king.";
     renderGame();
     return;
   }
 
   syncCustomBoardState();
-  engineLineMessage = "Che do custom: Stockfish dang tat.";
-  statusMessage = `Da dat ${getCustomPieceLabel(pieceCode).toLowerCase()} vao ${square}.`;
+  engineLineMessage = "Custom mode: Stockfish is off.";
+  statusMessage = `Placed ${getCustomPieceLabel(pieceCode).toLowerCase()} on ${square}.`;
   await persistState();
   renderGame();
 }
@@ -605,15 +605,15 @@ async function playHumanMove(moveCandidate) {
   });
 
   if (!move) {
-    statusMessage = "Nuoc di khong hop le.";
+    statusMessage = "Illegal move.";
     renderGame();
     return;
   }
 
   moveStack.push(moveToUci(move));
   clearSelection();
-  engineLineMessage = "Dang doi Stockfish phan tich vi tri moi...";
-  statusMessage = `Ban di ${move.san}.`;
+  engineLineMessage = "Waiting for Stockfish to analyze the new position...";
+  statusMessage = `You played ${move.san}.`;
   await persistState();
   renderGame();
 
@@ -634,13 +634,13 @@ async function startNewGame() {
 
   if (mode === MODE_CUSTOM) {
     initialFen = chess.fen();
-    engineLineMessage = "Che do custom: ban co moi da san sang de ban dat quan.";
-    statusMessage = "Ban co moi. Chon quan roi bam vao o de dat.";
+    engineLineMessage = "Custom mode: a fresh board is ready for piece placement.";
+    statusMessage = "Fresh board ready. Choose a piece and click a square to place it.";
   } else {
-    engineLineMessage = "Stockfish se hien score va dong pv sau khi bat dau tinh.";
+    engineLineMessage = "Stockfish will show the score and PV after it starts calculating.";
     statusMessage = playerColor === "white"
-      ? "Van moi. Den luot ban."
-      : "Van moi. Stockfish se di truoc.";
+      ? "New game. Your move."
+      : "New game. Stockfish moves first.";
     resetEngineForFreshGame();
   }
 
@@ -655,13 +655,13 @@ async function startNewGame() {
 async function undoFullTurn() {
   previewTopMove = null;
   if (mode === MODE_CUSTOM) {
-    statusMessage = "Che do custom khong dung undo cap nuoc. Ban co the xoa o hoac nap FEN.";
+    statusMessage = "Custom mode does not use full-turn undo. You can clear squares or load a FEN.";
     renderGame();
     return;
   }
 
   if (!moveStack.length) {
-    statusMessage = "Khong con lich su de undo.";
+    statusMessage = "There is no move history to undo.";
     renderGame();
     return;
   }
@@ -670,8 +670,8 @@ async function undoFullTurn() {
   moveStack = moveStack.slice(0, Math.max(0, moveStack.length - Math.min(2, moveStack.length)));
   rebuildGameFromState();
   clearSelection();
-  engineLineMessage = "Da lui 1 cap nuoc. Stockfish se tinh lai khi can.";
-  statusMessage = "Da undo 1 cap nuoc.";
+  engineLineMessage = "Undid one full turn. Stockfish will recalculate when needed.";
+  statusMessage = "Undid one full turn.";
   resetEngineForFreshGame();
   await persistState();
   renderGame();
@@ -686,7 +686,7 @@ async function loadFenPosition(rawFen) {
   const fen = rawFen.trim();
 
   if (!fen) {
-    statusMessage = "Hay nhap FEN truoc khi nap.";
+    statusMessage = "Please enter a FEN before loading.";
     renderGame();
     return;
   }
@@ -700,14 +700,14 @@ async function loadFenPosition(rawFen) {
       customTurn = chess.turn();
       initialFen = chess.fen();
       moveStack = [];
-      engineLineMessage = "Che do custom: da nap FEN moi.";
-      statusMessage = "Da nap FEN vao custom board.";
+      engineLineMessage = "Custom mode: loaded a new FEN.";
+      statusMessage = "Loaded FEN into the custom board.";
     } else {
       chess = new Chess(fen);
       initialFen = chess.fen() === START_FEN ? null : chess.fen();
       moveStack = [];
-      engineLineMessage = "FEN moi da duoc nap. Stockfish se tinh lai tren vi tri nay.";
-      statusMessage = "Da nap FEN thanh cong.";
+      engineLineMessage = "Loaded a new FEN. Stockfish will calculate from this position.";
+      statusMessage = "FEN loaded successfully.";
       resetEngineForFreshGame();
     }
 
@@ -718,7 +718,7 @@ async function loadFenPosition(rawFen) {
       await requestEngineMove(false);
     }
   } catch (error) {
-    statusMessage = error?.message || "FEN khong hop le.";
+    statusMessage = error?.message || "Invalid FEN.";
     renderGame();
   }
 }
@@ -743,8 +743,8 @@ async function switchMode(nextMode) {
       initialFen = chess.fen() === START_FEN ? null : chess.fen();
       moveStack = [];
       customTurn = chess.turn();
-      engineLineMessage = "Da quay lai che do choi voi may.";
-      statusMessage = "Che do choi voi may da duoc bat.";
+      engineLineMessage = "Switched back to engine play mode.";
+      statusMessage = "Engine play mode enabled.";
       resetEngineForFreshGame();
       await persistState();
       renderGame();
@@ -755,7 +755,7 @@ async function switchMode(nextMode) {
     } catch (error) {
       modeSelect.value = MODE_CUSTOM;
       statusMessage =
-        "Vi tri custom chua hop le de choi voi may. Hay dat lai FEN hop le roi moi chuyen che do.";
+        "The custom position is not valid for engine play. Please set a valid FEN before switching modes.";
       renderGame();
     }
 
@@ -766,8 +766,8 @@ async function switchMode(nextMode) {
   customTurn = chess.turn();
   initialFen = chess.fen();
   moveStack = [];
-  engineLineMessage = "Che do custom: Stockfish tam tat de ban tu dat quan.";
-  statusMessage = "Da chuyen sang che do custom ban co.";
+  engineLineMessage = "Custom mode: Stockfish is paused so you can place pieces manually.";
+  statusMessage = "Switched to custom board mode.";
   await persistState();
   renderGame();
 }
@@ -775,7 +775,7 @@ async function switchMode(nextMode) {
 async function requestEngineMove(forceCurrentSide) {
   previewTopMove = null;
   if (mode !== MODE_PLAY) {
-    statusMessage = "Che do custom dang bat, may se khong danh nuoc.";
+    statusMessage = "Custom mode is active, so the engine will not make a move.";
     renderGame();
     return;
   }
@@ -795,7 +795,7 @@ async function requestEngineMove(forceCurrentSide) {
     pendingSearch = true;
     pendingForceSearch = forceCurrentSide;
     pendingSearchPurpose = "move";
-    statusMessage = "Dang tai Stockfish...";
+    statusMessage = "Loading Stockfish...";
     renderGame();
     return;
   }
@@ -810,8 +810,8 @@ async function requestEngineMove(forceCurrentSide) {
   activeSearchFen = chess.fen();
   engineTopMoves = [];
   engineTopMovesFen = activeSearchFen;
-  statusMessage = "Stockfish dang nghi...";
-  engineLineMessage = `Muc ${DIFFICULTY_PRESETS[difficulty].label} | depth ${DIFFICULTY_PRESETS[difficulty].depth}`;
+  statusMessage = "Stockfish is thinking...";
+  engineLineMessage = `Level ${DIFFICULTY_PRESETS[difficulty].label} | depth ${DIFFICULTY_PRESETS[difficulty].depth}`;
   renderGame();
 
   engineSend(`position fen ${activeSearchFen}`);
@@ -821,19 +821,19 @@ async function requestEngineMove(forceCurrentSide) {
 async function requestTopMoves() {
   previewTopMove = null;
   if (mode !== MODE_PLAY) {
-    statusMessage = "Che do custom dang bat, khong phan tich Top 3.";
+    statusMessage = "Custom mode is active, so Top 3 analysis is unavailable.";
     renderGame();
     return;
   }
 
   if (engineSearching) {
-    statusMessage = "Stockfish dang nghi, hay doi lan phan tich hien tai xong.";
+    statusMessage = "Stockfish is busy. Please wait for the current analysis to finish.";
     renderGame();
     return;
   }
 
   if (chess.isGameOver()) {
-    statusMessage = "Van nay da ket thuc, khong con Top 3 de goi y.";
+    statusMessage = "This game is already over, so there are no Top 3 suggestions.";
     renderGame();
     return;
   }
@@ -844,7 +844,7 @@ async function requestTopMoves() {
     pendingSearch = true;
     pendingForceSearch = false;
     pendingSearchPurpose = "hint";
-    statusMessage = "Dang tai Stockfish...";
+    statusMessage = "Loading Stockfish...";
     renderGame();
     return;
   }
@@ -859,8 +859,8 @@ async function requestTopMoves() {
   activeSearchFen = chess.fen();
   engineTopMoves = [];
   engineTopMovesFen = activeSearchFen;
-  statusMessage = "Stockfish dang phan tich Top 3...";
-  engineLineMessage = `Top 3 | depth ${HINT_ENGINE_PRESET.depth} | engine manh nhat`;
+  statusMessage = "Stockfish is analyzing the Top 3 moves...";
+  engineLineMessage = `Top 3 | depth ${HINT_ENGINE_PRESET.depth} | strongest engine`;
   renderGame();
 
   engineSend(`position fen ${activeSearchFen}`);
@@ -880,8 +880,8 @@ function ensureEngine() {
     pendingSearch = false;
     pendingForceSearch = false;
     activeSearchFen = "";
-    statusMessage = event?.message || "Khong khoi dong duoc Stockfish.";
-    engineLineMessage = "Engine gap loi khi tai worker.";
+    statusMessage = event?.message || "Could not start Stockfish.";
+    engineLineMessage = "The engine worker failed to load.";
     renderGame();
   });
   engineSend("uci");
@@ -936,8 +936,8 @@ function handleBestMove(line) {
     activeSearchFen = "";
     activeSearchPurpose = "move";
     statusMessage = engineTopMoves.length
-      ? "Da cap nhat Top 3 nuoc goi y."
-      : "Khong lay duoc Top 3 cho vi tri hien tai.";
+      ? "Top 3 move suggestions updated."
+      : "Could not get Top 3 suggestions for the current position.";
     renderGame();
     return;
   }
@@ -959,13 +959,13 @@ function handleBestMove(line) {
   activeSearchPurpose = "move";
 
   if (!move) {
-    statusMessage = "Da bo qua bestmove cu vi trang thai van da thay doi.";
+    statusMessage = "Ignored an outdated best move because the game state changed.";
     renderGame();
     return;
   }
 
   moveStack.push(moveToUci(move));
-  statusMessage = `Stockfish di ${move.san}.`;
+  statusMessage = `Stockfish played ${move.san}.`;
   void persistState();
   renderGame();
 }
@@ -1125,17 +1125,17 @@ async function restoreState() {
     }
 
     statusMessage = mode === MODE_CUSTOM
-      ? "Da khoi phuc custom board."
-      : (moveStack.length ? "Da khoi phuc van dang choi." : "San sang.");
+      ? "Restored the custom board."
+      : (moveStack.length ? "Restored the saved game." : "Ready.");
     engineLineMessage = mode === MODE_CUSTOM
-      ? "Che do custom: Stockfish dang tat."
-      : "Popup da tai lai van dang choi tu lan mo truoc.";
+      ? "Custom mode: Stockfish is off."
+      : "Popup restored the previous game from the last session.";
     syncFormControls();
     applyPopupWidth();
     applyPopupOpacity();
     applyStealthMode();
   } catch (error) {
-    statusMessage = error?.message || "Khong khoi phuc duoc van da luu.";
+    statusMessage = error?.message || "Could not restore the saved game.";
   }
 }
 
@@ -1150,8 +1150,8 @@ function rebuildGameFromState() {
       chess = new Chess();
       initialFen = null;
       moveStack = [];
-      statusMessage = "Trang thai cu bi loi, da reset ve van moi.";
-      engineLineMessage = "Khong dung duoc state cu nen popup da reset.";
+      statusMessage = "The previous state was corrupted, so the game was reset.";
+      engineLineMessage = "The previous state could not be used, so the popup was reset.";
       break;
     }
   }
@@ -1191,7 +1191,7 @@ function renderGame() {
   renderTopMoves();
   customPanelEl.classList.toggle("hidden", mode !== MODE_CUSTOM);
   gameFenInput.value = chess.fen();
-  engineLineEl.textContent = engineLineMessage || "Stockfish se hien score va dong pv sau khi bat dau tinh.";
+  engineLineEl.textContent = engineLineMessage || "Stockfish will show the score and PV after it starts calculating.";
   undoMoveButton.disabled = mode === MODE_CUSTOM;
   analyzeTopMovesButton.disabled = mode === MODE_CUSTOM || engineSearching || chess.isGameOver();
   openMiniWindowButton.disabled = IS_MINI_WINDOW;
@@ -1213,7 +1213,7 @@ function syncFormControls() {
   opacityIncreaseButton.disabled = popupOpacity >= POPUP_OPACITY_CONFIG.max;
   stealthToggleButton.setAttribute("aria-pressed", stealthMode ? "true" : "false");
   stealthToggleButton.classList.toggle("is-active", stealthMode);
-  stealthToggleButton.title = stealthMode ? "Tat Stealth mode" : "Bat Stealth mode";
+  stealthToggleButton.title = stealthMode ? "Disable Stealth mode" : "Enable Stealth mode";
   customTurnSelect.value = customTurn;
   customPieceLabelEl.textContent = getCustomPieceLabel(customSelectedPiece);
 }
@@ -1284,7 +1284,7 @@ async function updatePopupWidth(delta) {
 
   popupWidth = nextWidth;
   applyPopupWidth();
-  statusMessage = `Da doi kich thuoc popup sang ${popupWidth}px.`;
+  statusMessage = `Popup width changed to ${popupWidth}px.`;
   await persistState();
   renderGame();
 }
@@ -1299,7 +1299,7 @@ async function updatePopupOpacity(delta) {
 
   popupOpacity = nextOpacity;
   applyPopupOpacity();
-  statusMessage = `Da doi do mo popup sang ${popupOpacity}%.`;
+  statusMessage = `Popup opacity changed to ${popupOpacity}%.`;
   await persistState();
   renderGame();
 }
@@ -1308,15 +1308,15 @@ async function toggleStealthMode() {
   stealthMode = !stealthMode;
   applyStealthMode();
   statusMessage = stealthMode
-    ? "Da bat Stealth mode."
-    : "Da tat Stealth mode.";
+    ? "Stealth mode enabled."
+    : "Stealth mode disabled.";
   await persistState();
   renderGame();
 }
 
 async function openMiniWindow() {
   if (!chrome.windows?.create) {
-    statusMessage = "Chrome khong ho tro mo mini window trong moi truong nay.";
+    statusMessage = "Chrome does not support opening a mini window in this environment.";
     renderGame();
     return;
   }
@@ -1337,10 +1337,10 @@ async function openMiniWindow() {
       left: maxLeft,
       top: maxTop
     });
-    statusMessage = "Da mo mini window.";
+    statusMessage = "Mini window opened.";
     renderGame();
   } catch (error) {
-    statusMessage = error?.message || "Khong mo duoc mini window.";
+    statusMessage = error?.message || "Could not open the mini window.";
     renderGame();
   }
 }
@@ -1392,7 +1392,7 @@ function handleBoardResizeEnd(event) {
     console.warn(error);
   }
 
-  statusMessage = `Da doi co ban co sang ${boardSize}px.`;
+  statusMessage = `Board size changed to ${boardSize}px.`;
   void persistState();
   renderGame();
 }
@@ -1561,14 +1561,14 @@ function clearTopMovePreview() {
 
 function renderTopMoves() {
   if (mode !== MODE_PLAY) {
-    topMovesListEl.textContent = "Top 3 chi hien trong che do choi voi may.";
+    topMovesListEl.textContent = "Top 3 is only available in engine play mode.";
     return;
   }
 
   if (!engineTopMoves.length || engineTopMovesFen !== chess.fen()) {
     topMovesListEl.textContent = engineSearching && activeSearchPurpose === "hint"
-      ? "Stockfish dang tinh Top 3..."
-      : 'Bam "Top 3 goi y" de xem cac nuoc manh nhat cho vi tri hien tai.';
+      ? "Stockfish is calculating the Top 3..."
+      : 'Press the hint button to see the strongest moves for the current position.';
     return;
   }
 
@@ -1845,7 +1845,7 @@ function syncCustomBoardState() {
 
 function defaultStatusText() {
   if (mode === MODE_CUSTOM) {
-    return "Dang custom ban co.";
+    return "Custom board mode.";
   }
 
   if (chess.isGameOver()) {
@@ -1853,62 +1853,62 @@ function defaultStatusText() {
   }
 
   if (engineSearching) {
-    return "Stockfish dang nghi...";
+    return "Stockfish is thinking...";
   }
 
-  return isPlayerTurn() ? "Den luot ban." : "Den luot Stockfish.";
+  return isPlayerTurn() ? "Your move." : "Stockfish to move.";
 }
 
 function describeGameResult() {
   if (mode === MODE_CUSTOM) {
-    return "Dang custom";
+    return "Custom mode";
   }
 
   if (chess.isCheckmate()) {
-    return isPlayerTurn() ? "Ban thua do bi chieu bi." : "Ban thang do chieu bi.";
+    return isPlayerTurn() ? "You lost by checkmate." : "You won by checkmate.";
   }
 
   if (chess.isStalemate()) {
-    return "Hoa do het nuoc di.";
+    return "Draw by stalemate.";
   }
 
   if (typeof chess.isInsufficientMaterial === "function" && chess.isInsufficientMaterial()) {
-    return "Hoa do thieu vat chat.";
+    return "Draw by insufficient material.";
   }
 
   if (typeof chess.isThreefoldRepetition === "function" && chess.isThreefoldRepetition()) {
-    return "Hoa do lap lai 3 lan.";
+    return "Draw by threefold repetition.";
   }
 
   if (typeof chess.isDrawByFiftyMoves === "function" && chess.isDrawByFiftyMoves()) {
-    return "Hoa do luat 50 nuoc.";
+    return "Draw by the fifty-move rule.";
   }
 
   if (chess.isDraw()) {
-    return "Hoa.";
+    return "Draw.";
   }
 
-  return "Dang choi";
+  return "In progress";
 }
 
 function describeEngineStatus() {
   if (mode === MODE_CUSTOM) {
-    return "Tat trong custom";
+    return "Off in custom mode";
   }
 
   if (!engineWorker) {
-    return `San sang | ${DIFFICULTY_PRESETS[difficulty].label}`;
+    return `Ready | ${DIFFICULTY_PRESETS[difficulty].label}`;
   }
 
   if (!engineReady) {
-    return "Dang tai...";
+    return "Loading...";
   }
 
   if (engineSearching) {
-    return `Dang nghi | ${DIFFICULTY_PRESETS[difficulty].label}`;
+    return `Thinking | ${DIFFICULTY_PRESETS[difficulty].label}`;
   }
 
-  return `San sang | ${DIFFICULTY_PRESETS[difficulty].label}`;
+  return `Ready | ${DIFFICULTY_PRESETS[difficulty].label}`;
 }
 
 function shouldEnginePlay() {
@@ -1972,5 +1972,6 @@ function getPieceCode(piece) {
 }
 
 function getCustomPieceLabel(pieceCode) {
-  return CUSTOM_PIECES.find((piece) => piece.value === pieceCode)?.label || "Tot trang";
+  return CUSTOM_PIECES.find((piece) => piece.value === pieceCode)?.label || "White Pawn";
 }
+

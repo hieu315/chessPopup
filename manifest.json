@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Popup Gambit",
   "version": "0.1.0",
-  "description": "Choi co vua voi Stockfish ngay trong popup cua Chrome.",
+  "description": "Play chess with Stockfish right inside a Chrome popup.",
   "icons": {
     "16": "assets/icons/popup-gambit-16.png",
     "32": "assets/icons/popup-gambit-32.png",
