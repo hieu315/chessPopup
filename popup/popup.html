@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="vi">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -15,26 +15,26 @@
           <p class="eyebrow">Chrome Extension</p>
           <h1>Popup Gambit</h1>
         </div>
-        <span class="chip">Stockfish local</span>
+        <span class="chip">Local Stockfish</span>
       </header>
 
-      <section class="size-toolbar" aria-label="Dieu chinh kich thuoc popup">
+      <section class="size-toolbar" aria-label="Popup size controls">
         <div class="toolbar-grid">
           <label class="field field-range">
-            <span>Kich thuoc popup</span>
+            <span>Popup Size</span>
             <div class="size-stepper">
-              <button id="sizeDecreaseButton" class="stepper-button secondary" type="button" aria-label="Thu nho popup">-</button>
+              <button id="sizeDecreaseButton" class="stepper-button secondary" type="button" aria-label="Decrease popup size">-</button>
               <span id="sizeValue" class="range-value">--</span>
-              <button id="sizeIncreaseButton" class="stepper-button secondary" type="button" aria-label="Mo rong popup">+</button>
+              <button id="sizeIncreaseButton" class="stepper-button secondary" type="button" aria-label="Increase popup size">+</button>
             </div>
           </label>
 
           <label class="field field-range">
-            <span>Do mo</span>
+            <span>Opacity</span>
             <div class="size-stepper">
-              <button id="opacityDecreaseButton" class="stepper-button secondary" type="button" aria-label="Giam do mo popup">-</button>
+              <button id="opacityDecreaseButton" class="stepper-button secondary" type="button" aria-label="Decrease popup opacity">-</button>
               <span id="opacityValue" class="range-value">--</span>
-              <button id="opacityIncreaseButton" class="stepper-button secondary" type="button" aria-label="Tang do mo popup">+</button>
+              <button id="opacityIncreaseButton" class="stepper-button secondary" type="button" aria-label="Increase popup opacity">+</button>
             </div>
           </label>
         </div>
@@ -43,129 +43,129 @@
       <section class="panel">
         <div class="controls three-cols">
           <label class="field">
-            <span>Che do</span>
+            <span>Mode</span>
             <select id="modeSelect">
-              <option value="play">Choi voi may</option>
-              <option value="custom">Custom ban co</option>
+              <option value="play">Play vs Engine</option>
+              <option value="custom">Custom Board</option>
             </select>
           </label>
 
           <label class="field">
-            <span>Ban cam</span>
+            <span>Your Color</span>
             <select id="playerColorSelect">
-              <option value="white">Trang</option>
-              <option value="black">Den</option>
+              <option value="white">White</option>
+              <option value="black">Black</option>
             </select>
           </label>
 
           <label class="field">
-            <span>Do kho</span>
+            <span>Difficulty</span>
             <select id="difficultySelect">
-              <option value="1">De</option>
-              <option value="2">Thuong</option>
-              <option value="3">Kha</option>
-              <option value="4">Kho</option>
-              <option value="5">Rat kho</option>
+              <option value="1">Easy</option>
+              <option value="2">Normal</option>
+              <option value="3">Medium</option>
+              <option value="4">Hard</option>
+              <option value="5">Very Hard</option>
             </select>
           </label>
         </div>
 
-        <div class="board-toolbar" aria-label="Tac vu ban co">
+        <div class="board-toolbar" aria-label="Board actions">
           <button
             id="openMiniWindowButton"
             class="secondary board-quick-action"
             type="button"
-            aria-label="Mo mini window"
-            title="Mo mini window"
+            aria-label="Open mini window"
+            title="Open mini window"
           >&#8599;</button>
           <button
             id="stealthToggleButton"
             class="secondary board-quick-action"
             type="button"
-            aria-label="Bat hoac tat Stealth mode"
+            aria-label="Toggle stealth mode"
             title="Stealth mode"
           >S</button>
           <button
             id="newGameButton"
             class="secondary board-quick-action"
             type="button"
-            aria-label="Van moi"
-            title="Van moi"
+            aria-label="New game"
+            title="New game"
           >&#8635;</button>
           <button
             id="undoMoveButton"
             class="secondary board-quick-action"
             type="button"
-            aria-label="Undo 1 cap nuoc"
-            title="Undo 1 cap nuoc"
+            aria-label="Undo full turn"
+            title="Undo full turn"
           >&#8630;</button>
           <button
             id="analyzeTopMovesButton"
             class="secondary board-quick-action"
             type="button"
-            aria-label="Phan tich Top 3 nuoc"
-            title="Top 3 nuoc goi y"
-          >ℹ</button>
+            aria-label="Analyze top 3 moves"
+            title="Top 3 move hints"
+          >&#8505;</button>
         </div>
 
         <div id="boardShell" class="board-shell">
-          <div id="board" class="board" aria-label="Ban co vua"></div>
+          <div id="board" class="board" aria-label="Chess board"></div>
           <div id="boardOverlay" class="board-overlay" aria-hidden="true"></div>
           <button
             id="boardResizeHandle"
             class="board-resize-handle"
             type="button"
-            aria-label="Keo de doi kich thuoc ban co"
-            title="Giu chuot va keo de doi kich thuoc ban co"
+            aria-label="Drag to resize the board"
+            title="Click and drag to resize the board"
           ></button>
         </div>
 
         <section id="customPanel" class="custom-panel hidden">
           <div class="controls two-cols">
             <label class="field">
-              <span>Luot trong FEN</span>
+              <span>FEN Turn</span>
               <select id="customTurnSelect">
-                <option value="w">Trang</option>
-                <option value="b">Den</option>
+                <option value="w">White</option>
+                <option value="b">Black</option>
               </select>
             </label>
             <div class="stat">
-              <span class="label">Quan dang dat</span>
-              <span id="customPieceLabel">Tot trang</span>
+              <span class="label">Selected Piece</span>
+              <span id="customPieceLabel">White Pawn</span>
             </div>
           </div>
 
           <div id="customPalette" class="palette"></div>
 
           <div class="controls two-cols">
-            <button id="clearBoardButton" class="secondary">Xoa ban co</button>
-            <button id="setupStartPositionButton" class="secondary">Setup chuan</button>
+            <button id="clearBoardButton" class="secondary">Clear Board</button>
+            <button id="setupStartPositionButton" class="secondary">Standard Setup</button>
           </div>
 
           <p class="note">
-            O che do custom, bam chon quan roi bam len o bat ky de dat. Chon "Xoa o" de xoa quan tren tung o. Stockfish se tam tat.
+            In custom mode, choose a piece and click any square to place it. Choose "Erase Square" to remove a piece. Stockfish stays off in this mode.
           </p>
         </section>
 
         <div class="stat">
-          <span class="label">Danh gia</span>
+          <span class="label">Evaluation</span>
           <span id="engineLine" class="engine-line">
-            Stockfish se hien score va dong pv sau khi bat dau tinh.
+            Stockfish will show the score and PV after it starts calculating.
           </span>
         </div>
 
         <div class="analysis-card">
           <div class="analysis-head">
-            <span class="label">Top 3 nuoc</span>
-            <span class="analysis-hint">Hover hoac bam de highlight</span>
+            <span class="label">Top 3 Moves</span>
+            <span class="analysis-hint">Hover or click to highlight</span>
           </div>
           <div id="topMovesList" class="top-moves-list">
-            Bam nut &#9822; tren ban co de xem cac nuoc manh nhat cho vi tri hien tai.
+            Press the info button on the board to see the strongest moves for the current position.
           </div>
         </div>
 
         <div class="controls single-col">
-          <button id="flipBoardButton" class="secondary">Lat ban co</button>
+          <button id="flipBoardButton" class="secondary">Flip Board</button>
         </div>
 
         <label class="field">
@@ -174,12 +174,12 @@
         </label>
 
         <div class="controls two-cols">
-          <button id="loadFenButton">Nap FEN</button>
+          <button id="loadFenButton">Load FEN</button>
           <button id="copyFenButton" class="secondary">Copy FEN</button>
         </div>
 
         <p class="note">
-          Bam o nguon roi bam o dich de di chuyen. Tot phong se tu dong phong hau. Popup tu luu lai van dang choi.
+          Click the source square and then the destination square to move. Pawns auto-promote to queens. The popup saves your current game automatically.
         </p>
       </section>
     </main>
