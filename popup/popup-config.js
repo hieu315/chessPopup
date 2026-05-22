@@ -16,6 +16,39 @@
     }
   });
 
+  const popupOpacity = Object.freeze({
+    storageKey: "chromeChessPopupOpacity",
+    defaultValue: 100,
+    min: 35,
+    max: 100,
+    step: 5,
+    clamp(value) {
+      const numericValue = Number.parseInt(value, 10);
+
+      if (Number.isNaN(numericValue)) {
+        return this.defaultValue;
+      }
+
+      return Math.min(this.max, Math.max(this.min, numericValue));
+    }
+  });
+
+  const stealthMode = Object.freeze({
+    storageKey: "chromeChessPopupStealthMode",
+    defaultValue: false,
+    normalize(value) {
+      if (value === true || value === "true" || value === "1" || value === 1) {
+        return true;
+      }
+
+      if (value === false || value === "false" || value === "0" || value === 0) {
+        return false;
+      }
+
+      return this.defaultValue;
+    }
+  });
+
   const boardSize = Object.freeze({
     defaultValue: 720,
     min: 220,
@@ -33,6 +66,8 @@
 
   global.POPUP_GAMBIT_CONFIG = Object.freeze({
     popupWidth,
+    popupOpacity,
+    stealthMode,
     boardSize
   });
 })(globalThis);

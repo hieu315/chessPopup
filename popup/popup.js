@@ -1,10 +1,19 @@
 import { Chess } from "./vendor/chess.js";
 
+if (document.readyState === "loading") {
+  await new Promise((resolve) => {
+    document.addEventListener("DOMContentLoaded", resolve, { once: true });
+  });
+}
+
 const STORAGE_KEY = "chromeChessPopupState";
 const START_FEN = new Chess().fen();
 const MODE_PLAY = "play";
 const MODE_CUSTOM = "custom";
+const IS_MINI_WINDOW = new URLSearchParams(window.location.search).get("mini") === "1";
 const POPUP_WIDTH_CONFIG = globalThis.POPUP_GAMBIT_CONFIG?.popupWidth;
+const POPUP_OPACITY_CONFIG = globalThis.POPUP_GAMBIT_CONFIG?.popupOpacity;
+const POPUP_STEALTH_CONFIG = globalThis.POPUP_GAMBIT_CONFIG?.stealthMode;
 const BOARD_SIZE_CONFIG = globalThis.POPUP_GAMBIT_CONFIG?.boardSize;
 
 if (!POPUP_WIDTH_CONFIG) {
@@ -15,7 +24,17 @@ if (!BOARD_SIZE_CONFIG) {
   throw new Error("Missing POPUP_GAMBIT_CONFIG.boardSize");
 }
 
+if (!POPUP_OPACITY_CONFIG) {
+  throw new Error("Missing POPUP_GAMBIT_CONFIG.popupOpacity");
+}
+
+if (!POPUP_STEALTH_CONFIG) {
+  throw new Error("Missing POPUP_GAMBIT_CONFIG.stealthMode");
+}
+
 const POPUP_WIDTH_STORAGE_KEY = POPUP_WIDTH_CONFIG.storageKey;
+const POPUP_OPACITY_STORAGE_KEY = POPUP_OPACITY_CONFIG.storageKey;
+const POPUP_STEALTH_STORAGE_KEY = POPUP_STEALTH_CONFIG.storageKey;
 
 const PIECE_SYMBOLS = {
   wp: "\u2659",
@@ -77,30 +96,46 @@ const HINT_ENGINE_PRESET = {
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
 
-const boardEl = document.getElementById("board");
-const boardOverlayEl = document.getElementById("boardOverlay");
-const boardShellEl = document.getElementById("boardShell");
-const boardResizeHandleEl = document.getElementById("boardResizeHandle");
-const modeSelect = document.getElementById("modeSelect");
-const playerColorSelect = document.getElementById("playerColorSelect");
-const difficultySelect = document.getElementById("difficultySelect");
-const sizeDecreaseButton = document.getElementById("sizeDecreaseButton");
-const sizeIncreaseButton = document.getElementById("sizeIncreaseButton");
-const sizeValueEl = document.getElementById("sizeValue");
-const customPanelEl = document.getElementById("customPanel");
-const customTurnSelect = document.getElementById("customTurnSelect");
-const customPaletteEl = document.getElementById("customPalette");
-const customPieceLabelEl = document.getElementById("customPieceLabel");
-const gameStatusEl = document.getElementById("gameStatus");
-const gameTurnEl = document.getElementById("gameTurn");
-const gameResultEl = document.getElementById("gameResult");
-const engineStatusEl = document.getElementById("engineStatus");
-const engineLineEl = document.getElementById("engineLine");
-const gameFenInput = document.getElementById("gameFenInput");
-const engineMoveButton = document.getElementById("engineMoveButton");
-const undoMoveButton = document.getElementById("undoMoveButton");
-const analyzeTopMovesButton = document.getElementById("analyzeTopMovesButton");
-const topMovesListEl = document.getElementById("topMovesList");
+function requireElement(id) {
+  const element = document.getElementById(id);
+
+  if (!element) {
+    throw new Error(`Missing required popup element: #${id}`);
+  }
+
+  return element;
+}
+
+const boardEl = requireElement("board");
+const boardOverlayEl = requireElement("boardOverlay");
+const boardShellEl = requireElement("boardShell");
+const boardResizeHandleEl = requireElement("boardResizeHandle");
+const modeSelect = requireElement("modeSelect");
+const playerColorSelect = requireElement("playerColorSelect");
+const difficultySelect = requireElement("difficultySelect");
+const sizeDecreaseButton = requireElement("sizeDecreaseButton");
+const sizeIncreaseButton = requireElement("sizeIncreaseButton");
+const sizeValueEl = requireElement("sizeValue");
+const opacityDecreaseButton = requireElement("opacityDecreaseButton");
+const opacityIncreaseButton = requireElement("opacityIncreaseButton");
+const opacityValueEl = requireElement("opacityValue");
+const customPanelEl = requireElement("customPanel");
+const customTurnSelect = requireElement("customTurnSelect");
+const customPaletteEl = requireElement("customPalette");
+const customPieceLabelEl = requireElement("customPieceLabel");
+const engineLineEl = requireElement("engineLine");
+const gameFenInput = requireElement("gameFenInput");
+const openMiniWindowButton = requireElement("openMiniWindowButton");
+const stealthToggleButton = requireElement("stealthToggleButton");
+const newGameButton = requireElement("newGameButton");
+const undoMoveButton = requireElement("undoMoveButton");
+const analyzeTopMovesButton = requireElement("analyzeTopMovesButton");
+const flipBoardButton = requireElement("flipBoardButton");
+const topMovesListEl = requireElement("topMovesList");
+const loadFenButton = requireElement("loadFenButton");
+const copyFenButton = requireElement("copyFenButton");
+const clearBoardButton = requireElement("clearBoardButton");
+const setupStartPositionButton = requireElement("setupStartPositionButton");
 
 let chess = new Chess();
 let initialFen = null;
@@ -110,6 +145,8 @@ let boardView = "white";
 let boardSize = BOARD_SIZE_CONFIG.defaultValue;
 let difficulty = "2";
 let popupWidth = POPUP_WIDTH_CONFIG.defaultValue;
+let popupOpacity = POPUP_OPACITY_CONFIG.defaultValue;
+let stealthMode = POPUP_STEALTH_CONFIG.defaultValue;
 let mode = MODE_PLAY;
 let customTurn = "w";
 let customSelectedPiece = "wp";
@@ -144,7 +181,15 @@ boardResizeHandleEl.addEventListener("pointermove", handleBoardResizeMove);
 boardResizeHandleEl.addEventListener("pointerup", handleBoardResizeEnd);
 boardResizeHandleEl.addEventListener("pointercancel", handleBoardResizeEnd);
 
-document.getElementById("newGameButton").addEventListener("click", async () => {
+openMiniWindowButton.addEventListener("click", async () => {
+  await openMiniWindow();
+});
+
+stealthToggleButton.addEventListener("click", async () => {
+  await toggleStealthMode();
+});
+
+newGameButton.addEventListener("click", async () => {
   await startNewGame();
 });
 
@@ -152,15 +197,19 @@ undoMoveButton.addEventListener("click", async () => {
   await undoFullTurn();
 });
 
-document.getElementById("flipBoardButton").addEventListener("click", async () => {
+opacityDecreaseButton.addEventListener("click", async () => {
+  await updatePopupOpacity(-POPUP_OPACITY_CONFIG.step);
+});
+
+opacityIncreaseButton.addEventListener("click", async () => {
+  await updatePopupOpacity(POPUP_OPACITY_CONFIG.step);
+});
+
+flipBoardButton.addEventListener("click", async () => {
   boardView = boardView === "white" ? "black" : "white";
   statusMessage = "Da lat huong nhin ban co.";
   await persistState();
   renderGame();
-});
-
-engineMoveButton.addEventListener("click", async () => {
-  await requestEngineMove(true);
 });
 
 analyzeTopMovesButton.addEventListener("click", async () => {
@@ -170,11 +219,11 @@ topMovesListEl.addEventListener("pointerover", handleTopMovePointerOver);
 topMovesListEl.addEventListener("pointerout", handleTopMovePointerOut);
 topMovesListEl.addEventListener("click", handleTopMoveClick);
 
-document.getElementById("loadFenButton").addEventListener("click", async () => {
+loadFenButton.addEventListener("click", async () => {
   await loadFenPosition(gameFenInput.value);
 });
 
-document.getElementById("copyFenButton").addEventListener("click", async () => {
+copyFenButton.addEventListener("click", async () => {
   try {
     await navigator.clipboard.writeText(chess.fen());
     statusMessage = "Da copy FEN hien tai.";
@@ -185,7 +234,7 @@ document.getElementById("copyFenButton").addEventListener("click", async () => {
   }
 });
 
-document.getElementById("clearBoardButton").addEventListener("click", async () => {
+clearBoardButton.addEventListener("click", async () => {
   if (mode !== MODE_CUSTOM) {
     return;
   }
@@ -200,7 +249,7 @@ document.getElementById("clearBoardButton").addEventListener("click", async () =
   renderGame();
 });
 
-document.getElementById("setupStartPositionButton").addEventListener("click", async () => {
+setupStartPositionButton.addEventListener("click", async () => {
   if (mode !== MODE_CUSTOM) {
     return;
   }
@@ -264,6 +313,7 @@ customTurnSelect.addEventListener("change", async () => {
 window.addEventListener("beforeunload", shutdownEngine);
 
 await restoreState();
+applyWindowMode();
 renderGame();
 
 if (shouldEnginePlay()) {
@@ -368,9 +418,9 @@ function handlePieceDragStart(event) {
     startX: event.clientX,
     startY: event.clientY,
     started: false,
+    captured: false,
     ghostEl: null
   };
-  boardEl.setPointerCapture(event.pointerId);
 }
 
 function handlePieceDragMove(event) {
@@ -388,7 +438,13 @@ function handlePieceDragMove(event) {
     }
 
     activePieceDrag.started = true;
+    activePieceDrag.captured = true;
     suppressBoardClick = true;
+    try {
+      boardEl.setPointerCapture(event.pointerId);
+    } catch (error) {
+      console.warn(error);
+    }
     selectSquare(activePieceDrag.sourceSquare);
     activePieceDrag.ghostEl = createDragGhost(activePieceDrag.sourceSquare, activePieceDrag.pieceCode);
     updateDragGhostPosition(activePieceDrag.ghostEl, event.clientX, event.clientY);
@@ -407,10 +463,12 @@ function handlePieceDragEnd(event) {
     return;
   }
 
-  try {
-    boardEl.releasePointerCapture(event.pointerId);
-  } catch (error) {
-    console.warn(error);
+  if (activePieceDrag.captured) {
+    try {
+      boardEl.releasePointerCapture(event.pointerId);
+    } catch (error) {
+      console.warn(error);
+    }
   }
 
   if (!activePieceDrag.started) {
@@ -448,10 +506,12 @@ function handlePieceDragCancel(event) {
     return;
   }
 
-  try {
-    boardEl.releasePointerCapture(event.pointerId);
-  } catch (error) {
-    console.warn(error);
+  if (activePieceDrag.captured) {
+    try {
+      boardEl.releasePointerCapture(event.pointerId);
+    } catch (error) {
+      console.warn(error);
+    }
   }
 
   cleanupPieceDrag();
@@ -1041,6 +1101,8 @@ async function restoreState() {
     boardSize = clampBoardSize(snapshot.boardSize);
     difficulty = DIFFICULTY_PRESETS[snapshot.difficulty] ? snapshot.difficulty : "2";
     popupWidth = clampPopupWidth(snapshot.popupWidth);
+    popupOpacity = clampPopupOpacity(snapshot.popupOpacity);
+    stealthMode = normalizeStealthMode(snapshot.stealthMode);
     mode = snapshot.mode === MODE_CUSTOM ? MODE_CUSTOM : MODE_PLAY;
     customTurn = snapshot.customTurn === "b" ? "b" : "w";
     customSelectedPiece = CUSTOM_PIECES.some((piece) => piece.value === snapshot.customSelectedPiece)
@@ -1070,6 +1132,8 @@ async function restoreState() {
       : "Popup da tai lai van dang choi tu lan mo truoc.";
     syncFormControls();
     applyPopupWidth();
+    applyPopupOpacity();
+    applyStealthMode();
   } catch (error) {
     statusMessage = error?.message || "Khong khoi phuc duoc van da luu.";
   }
@@ -1107,6 +1171,8 @@ async function persistState() {
         boardSize,
         difficulty,
         popupWidth,
+        popupOpacity,
+        stealthMode,
         mode,
         customTurn,
         customSelectedPiece
@@ -1125,18 +1191,16 @@ function renderGame() {
   renderTopMoves();
   customPanelEl.classList.toggle("hidden", mode !== MODE_CUSTOM);
   gameFenInput.value = chess.fen();
-  gameStatusEl.textContent = statusMessage || defaultStatusText();
-  gameTurnEl.textContent = chess.turn() === "w" ? "Trang" : "Den";
-  gameResultEl.textContent = describeGameResult();
-  engineStatusEl.textContent = describeEngineStatus();
   engineLineEl.textContent = engineLineMessage || "Stockfish se hien score va dong pv sau khi bat dau tinh.";
-  engineMoveButton.disabled = mode === MODE_CUSTOM || engineSearching || chess.isGameOver();
   undoMoveButton.disabled = mode === MODE_CUSTOM;
   analyzeTopMovesButton.disabled = mode === MODE_CUSTOM || engineSearching || chess.isGameOver();
+  openMiniWindowButton.disabled = IS_MINI_WINDOW;
 }
 
 function syncFormControls() {
   applyPopupWidth();
+  applyPopupOpacity();
+  applyStealthMode();
   applyBoardSize();
   modeSelect.value = mode;
   playerColorSelect.value = playerColor;
@@ -1144,6 +1208,12 @@ function syncFormControls() {
   sizeValueEl.textContent = `${popupWidth}px`;
   sizeDecreaseButton.disabled = popupWidth <= POPUP_WIDTH_CONFIG.min;
   sizeIncreaseButton.disabled = popupWidth >= POPUP_WIDTH_CONFIG.max;
+  opacityValueEl.textContent = `${popupOpacity}%`;
+  opacityDecreaseButton.disabled = popupOpacity <= POPUP_OPACITY_CONFIG.min;
+  opacityIncreaseButton.disabled = popupOpacity >= POPUP_OPACITY_CONFIG.max;
+  stealthToggleButton.setAttribute("aria-pressed", stealthMode ? "true" : "false");
+  stealthToggleButton.classList.toggle("is-active", stealthMode);
+  stealthToggleButton.title = stealthMode ? "Tat Stealth mode" : "Bat Stealth mode";
   customTurnSelect.value = customTurn;
   customPieceLabelEl.textContent = getCustomPieceLabel(customSelectedPiece);
 }
@@ -1164,12 +1234,44 @@ function applyPopupWidth() {
   }
 }
 
+function applyPopupOpacity() {
+  document.documentElement.style.setProperty("--popup-opacity", `${popupOpacity / 100}`);
+
+  try {
+    localStorage.setItem(POPUP_OPACITY_STORAGE_KEY, String(popupOpacity));
+  } catch (error) {
+    console.warn(error);
+  }
+}
+
+function applyStealthMode() {
+  document.documentElement.dataset.stealth = stealthMode ? "on" : "off";
+
+  try {
+    localStorage.setItem(POPUP_STEALTH_STORAGE_KEY, stealthMode ? "1" : "0");
+  } catch (error) {
+    console.warn(error);
+  }
+}
+
+function applyWindowMode() {
+  document.documentElement.dataset.windowMode = IS_MINI_WINDOW ? "mini" : "popup";
+}
+
 function applyBoardSize() {
   boardShellEl.style.setProperty("--board-size", `${boardSize}px`);
 }
 
 function clampPopupWidth(value) {
   return POPUP_WIDTH_CONFIG.clamp(value);
+}
+
+function clampPopupOpacity(value) {
+  return POPUP_OPACITY_CONFIG.clamp(value);
+}
+
+function normalizeStealthMode(value) {
+  return POPUP_STEALTH_CONFIG.normalize(value);
 }
 
 async function updatePopupWidth(delta) {
@@ -1185,6 +1287,62 @@ async function updatePopupWidth(delta) {
   statusMessage = `Da doi kich thuoc popup sang ${popupWidth}px.`;
   await persistState();
   renderGame();
+}
+
+async function updatePopupOpacity(delta) {
+  const nextOpacity = clampPopupOpacity(popupOpacity + delta);
+
+  if (nextOpacity === popupOpacity) {
+    renderGame();
+    return;
+  }
+
+  popupOpacity = nextOpacity;
+  applyPopupOpacity();
+  statusMessage = `Da doi do mo popup sang ${popupOpacity}%.`;
+  await persistState();
+  renderGame();
+}
+
+async function toggleStealthMode() {
+  stealthMode = !stealthMode;
+  applyStealthMode();
+  statusMessage = stealthMode
+    ? "Da bat Stealth mode."
+    : "Da tat Stealth mode.";
+  await persistState();
+  renderGame();
+}
+
+async function openMiniWindow() {
+  if (!chrome.windows?.create) {
+    statusMessage = "Chrome khong ho tro mo mini window trong moi truong nay.";
+    renderGame();
+    return;
+  }
+
+  const miniWidth = 262;
+  const miniHeight = 336;
+  const maxLeft = Math.max(0, (window.screen?.availWidth || miniWidth) - miniWidth - 12);
+  const maxTop = Math.max(0, (window.screen?.availHeight || miniHeight) - miniHeight - 12);
+  const miniWindowUrl = chrome.runtime.getURL("popup/popup.html?mini=1");
+
+  try {
+    await chrome.windows.create({
+      url: miniWindowUrl,
+      type: "popup",
+      focused: true,
+      width: miniWidth,
+      height: miniHeight,
+      left: maxLeft,
+      top: maxTop
+    });
+    statusMessage = "Da mo mini window.";
+    renderGame();
+  } catch (error) {
+    statusMessage = error?.message || "Khong mo duoc mini window.";
+    renderGame();
+  }
 }
 
 function clampBoardSize(value) {
